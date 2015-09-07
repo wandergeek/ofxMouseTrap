@@ -2,8 +2,17 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxXmlSettings.h"
+#include "ofxMouseController.h"
 
-typedef vector<vector<vector <int>>> PathCoords; //might only need to be 2d?
+typedef struct MouseEvent {
+    int x;
+    int y;
+    long time;
+} MouseEvent;
+
+typedef vector<vector<MouseEvent>> PathCoords; //Vector of paths -> vector of items -> vector of MouseEvents
+
 class ofxMouseTrap {
     
 public:
@@ -18,6 +27,7 @@ public:
     void update();
     
 private:
-    void loadPathVectorFromXML();
     PathCoords paths;
+    int numPaths;
 };
+
