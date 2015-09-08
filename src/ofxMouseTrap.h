@@ -4,11 +4,11 @@
 #include "ofMain.h"
 #include "ofxXmlSettings.h"
 
-class MouseEvent {
+class ofxMouseTrapEvent {
  
 public:
     
-    MouseEvent() {
+    ofxMouseTrapEvent() {
         x = 0;
         y = 0;
         button = 0;
@@ -25,8 +25,8 @@ public:
     
 };
 
-typedef vector<MouseEvent> Path;
-typedef vector<Path> ofxMouseTrapData;
+typedef vector<ofxMouseTrapEvent> ofxMouseTrapPath;
+typedef vector<ofxMouseTrapPath> ofxMouseTrapData;
 
 class ofxMouseTrap {
     
@@ -56,12 +56,12 @@ public:
     bool load(string filename);
 
     const ofxMouseTrapData & getMouseData();
-    const MouseEvent * getCurrentMouseEvent();
+    const ofxMouseTrapEvent * getCurrentMouseEvent();
     vector<ofPolyline> getPathPolylines();
     
 private:
     ofxMouseTrapData mouseData;
-    MouseEvent * mouseEventCurrent;
+    ofxMouseTrapEvent * mouseEventCurrent;
     
     uint64_t timeCurrent;
     uint64_t timeRecordStart;
