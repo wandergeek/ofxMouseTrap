@@ -48,8 +48,6 @@ public:
     
 private:
     ofxMouseTrapData mouseData;
-    ofxXmlSettings playXML;
-    ofxXmlSettings recordXML;
     int numPaths;
     long currentTime;
     bool bisPlaying;

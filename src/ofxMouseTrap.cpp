@@ -133,26 +133,27 @@ bool ofxMouseTrap::load(string filename){
         return false;
     }
     
-    playXML.load(filename);
-    numPaths = playXML.getNumTags("path");
+    ofxXmlSettings xml;
+    xml.load(filename);
+    int numPaths = xml.getNumTags("path");
     ofLog(ofLogLevel::OF_LOG_NOTICE, "Got " + ofToString(numPaths) + " paths");
     
     for(int i=0; i<numPaths; i++) {
-        playXML.pushTag("path", i);
-        int numItems = playXML.getNumTags("item");
+        xml.pushTag("path", i);
+        int numItems = xml.getNumTags("item");
         vector <MouseEvent> mv;
         for(int j=0; j<numItems; j++) {
             MouseEvent m;
-            m.x = playXML.getAttribute("item", "x", -1, j);
-            m.y = playXML.getAttribute("item", "y", -1, j);
-            m.time = playXML.getAttribute("item", "timeMS", -1, j);
+            m.x = xml.getAttribute("item", "x", -1, j);
+            m.y = xml.getAttribute("item", "y", -1, j);
+            m.time = xml.getAttribute("item", "timeMS", -1, j);
             mv.push_back(m);
         }
-        playXML.popTag();
+        xml.popTag();
         mouseData.paths.push_back(mv);
     }
     
-    mouseData.startTime = playXML.getAttribute("fileInfo", "startTime", 0);
+    mouseData.startTime = xml.getAttribute("fileInfo", "startTime", 0);
     
     return true;
 }
