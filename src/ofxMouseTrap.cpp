@@ -64,12 +64,12 @@ void ofxMouseTrap::update(){
     const Path & pathLast = mouseData[mouseData.size()-1];
     const MouseEvent & mouseEventLast = pathLast[pathLast.size() - 1];
     if(timePlay > mouseEventLast.time) {
-        reset();
+        playReset();
     }
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::drawPaths(){
+void ofxMouseTrap::drawDebug(){
     vector<ofPolyline> lines = getPathPolylines();
     ofSetColor(ofColor::black);
     for(int i=0; i<lines.size(); i++) {
@@ -78,7 +78,7 @@ void ofxMouseTrap::drawPaths(){
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::play(){
+void ofxMouseTrap::playStart(){
     if(bisRecording == true) {
         recordStop();
     }
@@ -88,24 +88,19 @@ void ofxMouseTrap::play(){
         return;
     }
     
-    reset();
+    playReset();
     
     bisPlaying = true;
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::stop(){
+void ofxMouseTrap::playStop(){
     bisPlaying = false;
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::reset() {
+void ofxMouseTrap::playReset() {
     timePlayStart = ofGetElapsedTimeMillis();
-}
-
-//--------------------------------------------------------------
-bool ofxMouseTrap::isRecording() {
-    return bisRecording;
 }
 
 //--------------------------------------------------------------
@@ -124,6 +119,62 @@ void ofxMouseTrap::recordStart() {
 //--------------------------------------------------------------
 void ofxMouseTrap::recordStop() {
     bisRecording = false;
+}
+
+//--------------------------------------------------------------
+bool ofxMouseTrap::isRecording() {
+    return bisRecording;
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::mousePressed(int x, int y, int button) {
+    if(bisRecording == false) {
+        return;
+    }
+    
+    ofLog(ofLogLevel::OF_LOG_NOTICE, "Starting path " + ofToString(mouseData.size()+1));
+    
+    Path newPath;
+    mouseData.push_back(newPath);
+    
+    addMouseEvent(x, y, button);
+}
+
+//--------------------------------------------------------------
+
+void ofxMouseTrap::mouseDragged(int x, int y, int button) {
+    addMouseEvent(x, y, button);
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::mouseReleased(int x, int y, int button) {
+    if(bisRecording == false) {
+        return;
+    }
+    
+    ofLog(ofLogLevel::OF_LOG_NOTICE, "Ending path " + ofToString(mouseData.size() ));
+    
+    addMouseEvent(x, y, button);
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::addMouseEvent(int x, int y, int button) {
+    if(bisRecording == false) {
+        return;
+    }
+    
+    ofLog(ofLogLevel::OF_LOG_NOTICE, "Logging mouse: " + ofToString(x) + "," + ofToString(y));
+    
+    uint64_t timeNow = ofGetElapsedTimeMillis();
+    uint64_t timeRecord = timeNow - timeRecordStart;
+    
+    MouseEvent e;
+    e.x = x;
+    e.y = y;
+    e.time = timeRecord;
+    
+    Path *curPath = &mouseData[mouseData.size()-1];
+    curPath->push_back(e);
 }
 
 //--------------------------------------------------------------
@@ -188,64 +239,9 @@ bool ofxMouseTrap::load(string filename){
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::recordMouseEvent(int x, int y, int button) {
-    if(bisRecording == false) {
-        return;
-    }
-    
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Logging mouse: " + ofToString(x) + "," + ofToString(y));
-    
-    uint64_t timeNow = ofGetElapsedTimeMillis();
-    uint64_t timeRecord = timeNow - timeRecordStart;
-    
-    MouseEvent e;
-    e.x = x;
-    e.y = y;
-    e.time = timeRecord;
-    
-    Path *curPath = &mouseData[mouseData.size()-1];
-    curPath->push_back(e);
+const ofxMouseTrapData & ofxMouseTrap::getMouseData(){
+    return mouseData;
 }
-
-//--------------------------------------------------------------
-void ofxMouseTrap::mousePressed(int x, int y, int button) {
-    if(bisRecording == false) {
-        return;
-    }
-    
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Starting path " + ofToString(mouseData.size()+1));
-    
-    Path newPath;
-    mouseData.push_back(newPath);
-    
-    recordMouseEvent(x, y, button);
-}
-
-void ofxMouseTrap::mouseDragged(int x, int y, int button) {
-    recordMouseEvent(x, y, button);
-}
-
-void ofxMouseTrap::mouseReleased(int x, int y, int button) {
-    if(bisRecording == false) {
-        return;
-    }
-    
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Ending path " + ofToString(mouseData.size() ));
-    
-    recordMouseEvent(x, y, button);
-}
-
-//--------------------------------------------------------------
-int ofxMouseTrap::getNumPaths(){
-    mouseData.size();
-}
-
-//--------------------------------------------------------------
-int ofxMouseTrap::getNumItems(int pathID){
-    return mouseData[pathID].size();
-
-}
-
 
 //--------------------------------------------------------------
 const MouseEvent * ofxMouseTrap::getCurrentMouseEvent() {
