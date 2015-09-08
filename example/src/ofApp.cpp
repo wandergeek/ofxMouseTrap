@@ -4,11 +4,13 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-
-//    trap.load("2015-09-07-16-28-56-548.xml");
-//    trap.recordStart();
-    ofSetCircleResolution(300);
     trap = ofxMouseTrap();
+    trap.recordStart();
+    ofSetCircleResolution(300);
+    playIcon.load("play.png");
+    pauseIcon.load("pause.png");
+    iconPos = ofPoint(ofGetWidth()*0.05, ofGetHeight()*0.05);
+    ofSetLogLevel(ofLogLevel::OF_LOG_ERROR);
 }
 
 //--------------------------------------------------------------
@@ -18,37 +20,40 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
+
     if(trap.isRecording()) {
         ofFill();
         ofSetColor(ofColor::red);
-        ofDrawCircle(ofGetWidth()*0.05, ofGetHeight()*0.05, 20);
-        ofSetColor(ofColor::black);
-        debugLine.draw();
+        ofDrawCircle(iconPos, 20);
         
     } else if(trap.isPlaying()) {
-        ofPolyline line = trap.getPathPolyline();
-        ofSetColor(ofColor::white);
-        line.draw();
         MouseEvent e = trap.getCurrentMouseEvent();
         ofFill();
         ofSetColor(ofColor::fuchsia);
         ofDrawCircle(e.x, e.y, 20);
+        playIcon.draw(iconPos);
     }
+    
+    trap.drawPaths();
+    
     int x = ofGetWidth()*0.05;
     int y = ofGetHeight()*0.95;
     ofSetColor(ofColor::black);
-    ofDrawBitmapString("Press R to Record, S to Save, P to play last recording, and spacebar to pause playback", x, y);
+    ofDrawBitmapString("Click and drag mouse to record path.", x, y);
+    ofDrawBitmapString("Press R to re/record, S to Save, and P to re/play recording", x, y+20);
+    ofDrawBitmapString(ofToString(ofGetElapsedTimeMillis()), ofGetWidth()*0.9, ofGetHeight()*0.05);
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     if(key == 's') {
         trap.save();
+        
     } if(key == 'r') {
         trap.recordStart();
-    } else if(key == ' ') {
-        trap.toggleRecordState();
+        
     } else if(key == 'p') {
+        trap.recordStop();
         trap.play();
     }
 }
@@ -66,19 +71,16 @@ void ofApp::mouseMoved(int x, int y ){
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
     trap.recordMouseEvent(x,y,button);
-    debugLine.addVertex(x, y);
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
     trap.beginPath();
-    debugLine.clear();
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
     trap.endPath();
-//    debugLine.close();
     
 }
 

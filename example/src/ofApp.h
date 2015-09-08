@@ -24,4 +24,7 @@ public:
 
     ofxMouseTrap trap;
     ofPolyline debugLine;
+    ofImage playIcon;
+    ofImage pauseIcon;
+    ofPoint iconPos;
 };
