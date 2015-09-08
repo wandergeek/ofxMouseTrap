@@ -6,11 +6,9 @@
 void ofApp::setup(){
 
 //    trap.load("2015-09-07-16-28-56-548.xml");
-    trap.recordStart();
+//    trap.recordStart();
     ofSetCircleResolution(300);
-    
-
-
+    trap = ofxMouseTrap();
 }
 
 //--------------------------------------------------------------
@@ -20,20 +18,34 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    ofPolyline line = trap.getPathPolyline();
-    ofSetColor(ofColor::white);
-    line.draw();
-    MouseEvent e = trap.getCurrentMouseEvent();
-    ofFill();
-    ofSetColor(ofColor::fuchsia);
-    ofDrawCircle(e.x, e.y, 20);
-    debugLine.draw();
+    if(trap.isRecording()) {
+        ofFill();
+        ofSetColor(ofColor::red);
+        ofDrawCircle(ofGetWidth()*0.05, ofGetHeight()*0.05, 20);
+        ofSetColor(ofColor::black);
+        debugLine.draw();
+        
+    } else if(trap.isPlaying()) {
+        ofPolyline line = trap.getPathPolyline();
+        ofSetColor(ofColor::white);
+        line.draw();
+        MouseEvent e = trap.getCurrentMouseEvent();
+        ofFill();
+        ofSetColor(ofColor::fuchsia);
+        ofDrawCircle(e.x, e.y, 20);
+    }
+    int x = ofGetWidth()*0.05;
+    int y = ofGetHeight()*0.95;
+    ofSetColor(ofColor::black);
+    ofDrawBitmapString("Press R to Record, S to Save, P to play last recording, and spacebar to pause playback", x, y);
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     if(key == 's') {
         trap.save();
+    } if(key == 'r') {
+        trap.recordStart();
     } else if(key == ' ') {
         trap.toggleRecordState();
     } else if(key == 'p') {
@@ -66,7 +78,7 @@ void ofApp::mousePressed(int x, int y, int button){
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
     trap.endPath();
-    debugLine.close();
+//    debugLine.close();
     
 }
 

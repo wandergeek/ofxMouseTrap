@@ -10,17 +10,21 @@ typedef struct MouseEvent {
     long time;
 } MouseEvent;
 
-typedef vector<vector<MouseEvent>> PathCoords; //Vector of paths -> vector of items -> vector of MouseEvents
+typedef vector<MouseEvent> Path;
+typedef vector<Path> PathCollection; 
+
 
 class ofxMouseTrapData {
 public:
-    PathCoords paths;
+    PathCollection paths;
     long startTime;
 };
 
 class ofxMouseTrap {
     
 public:
+    ofxMouseTrap();
+    ~ofxMouseTrap();
     void recordStart();
     void recordStop();
     bool load(string filename);
@@ -39,21 +43,20 @@ public:
     void toggleRecordState();
     ofPolyline getPathPolyline();
     MouseEvent getCurrentMouseEvent();
+    bool isRecording();
+    bool isPlaying();
     
 private:
     ofxMouseTrapData mouseData;
-
-    int numPaths;
     ofxXmlSettings playXML;
     ofxXmlSettings recordXML;
+    int numPaths;
     long currentTime;
     bool bisPlaying;
     bool bisRecording;
     bool bisRecordingPath;
-    int tagCount;
-    int pathCount;
-    MouseEvent curEvent;
-    int curEventIndex;
-    int curPathIndex;
+    MouseEvent curPlayEvent;
+    int curPlayEventIndex;
+    int curPlayPathIndex;
 };
 
