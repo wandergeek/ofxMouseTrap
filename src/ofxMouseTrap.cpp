@@ -2,36 +2,54 @@
 
 //--------------------------------------------------------------
 ofxMouseTrap::ofxMouseTrap() {
-    mouseData = *new ofxMouseTrapData;
     bisPlaying = false;
     bisRecording = false;
+    currentTime = 0;
 }
 
 //--------------------------------------------------------------
 ofxMouseTrap::~ofxMouseTrap() {
-//    delete &mouseData; //this is  not right
+    //
 }
+
 //--------------------------------------------------------------
 void ofxMouseTrap::update(){
     currentTime = ofGetElapsedTimeMillis();
+    
     if(bisPlaying) {
-        vector<MouseEvent> playPath = mouseData.paths[curPlayPathIndex];
-        if(curPlayEventIndex + 1 > playPath.size()) {
-            curPlayEventIndex++;
-            playPath = mouseData.paths[curPlayPathIndex];
-            curPlayEventIndex = 0;
+        vector<MouseEvent> curPlayPath = mouseData.paths[pathIndex];
+        
+        //loop path and event indexes
+        if(eventIndex + 1 >= curPlayPath.size()) {
+            eventIndex = 0;
+            pathIndex++;
+            if(pathIndex >= mouseData.paths.size()) {
+                ofResetElapsedTimeCounter();
+                currentTime = 0;
+                pathIndex = 0;
+            }
         }
         
-        
-        curPlayEvent = playPath[curPlayEventIndex];
-        MouseEvent nextEvent = playPath[curPlayEventIndex+1];
+        curPlayPath = mouseData.paths[pathIndex];
+        curPlayEvent = curPlayPath[eventIndex];
+        MouseEvent nextEvent = curPlayPath[eventIndex+1];
         int nextDiff = abs(nextEvent.time - currentTime);
         int curDiff = abs(curPlayEvent.time - currentTime);
+        
         if(nextDiff <= curDiff) {
             curPlayEvent = nextEvent;
+            eventIndex++;
             ofLog(ofLogLevel::OF_LOG_NOTICE, "Moving mouse to " + ofToString(curPlayEvent.x) + ", " + ofToString(curPlayEvent.y));
-            curPlayEventIndex++;
         }
+    }
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::drawPaths(){
+    vector<ofPolyline> lines = getPathPolylines();
+    ofSetColor(ofColor::black);
+    for(int i=0; i<lines.size(); i++) {
+        lines[i].draw();
     }
 }
 
@@ -41,14 +59,10 @@ void ofxMouseTrap::stop(){
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::pause(){
-    bisPlaying = false;
-}
-
-//--------------------------------------------------------------
 bool ofxMouseTrap::isRecording() {
     return bisRecording;
 }
+
 //--------------------------------------------------------------
 bool ofxMouseTrap::isPlaying() {
     return bisPlaying;
@@ -64,21 +78,21 @@ void ofxMouseTrap::play(){
     ofResetElapsedTimeCounter();
     bisPlaying = true;
     bisRecording = false;
-    curPlayEventIndex = 0;
+    eventIndex = 0;
+    pathIndex = 0;
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::recordStart() {
     bisRecording = true;
+    bisPlaying = false;
+    mouseData.paths.clear();
+    ofResetElapsedTimeCounter();
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::recordStop() {
     bisRecording = false;
-}
-//--------------------------------------------------------------
-void ofxMouseTrap::toggleRecordState() {
-    bisRecording = !bisRecording;
 }
 
 //--------------------------------------------------------------
@@ -122,6 +136,7 @@ void ofxMouseTrap::save(string filename) {
     }
     
     xml.save(filename);
+    mouseData.paths.clear();
 }
 
 //--------------------------------------------------------------
@@ -200,15 +215,17 @@ MouseEvent ofxMouseTrap::getCurrentMouseEvent() {
 }
 
 //--------------------------------------------------------------
-ofPolyline ofxMouseTrap::getPathPolyline() {
-    ofPolyline line;
-    if(!bisPlaying) {
-        ofLog(ofLogLevel::OF_LOG_ERROR, "Call play() before requesting a polyline");
-    } else {
-        vector<MouseEvent> curPath = mouseData.paths[curPlayPathIndex];
-        for(int i=0; i<curPath.size(); i++) {
-            line.addVertex(curPath[i].x, curPath[i].y);
+vector<ofPolyline> ofxMouseTrap::getPathPolylines() {
+    vector<ofPolyline> lines;
+        int numPaths = mouseData.paths.size();
+        for(int i=0; i<numPaths; i++) {
+            ofPolyline line;
+            vector<MouseEvent> curPath = mouseData.paths[i];
+            for(int i=0; i<curPath.size(); i++) {
+                line.addVertex(curPath[i].x, curPath[i].y);
+            }
+            lines.push_back(line);
+            line.clear();
         }
-    }
-    return line;
+    return lines;
 }

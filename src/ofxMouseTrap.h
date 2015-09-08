@@ -25,36 +25,39 @@ class ofxMouseTrap {
 public:
     ofxMouseTrap();
     ~ofxMouseTrap();
-    void recordStart();
-    void recordStop();
+    void update();
+    void drawPaths();
+    
     bool load(string filename);
     void save();
     void save(string filename);
+    
+    void play();
+    void stop();
+    void recordStart();
+    void recordStop();
+    bool isRecording();
+    bool isPlaying();
+    bool isPaused();
+    
     int getNumPaths();
     int getNumItems(int pathID);
     void recordMouseEvent(int x, int y, int button);
-    void play();
-    void draw();
-    void stop();
-    void pause();
-    void update();
+    
     void beginPath();
     void endPath();
-    void toggleRecordState();
-    ofPolyline getPathPolyline();
+    vector<ofPolyline> getPathPolylines();
     MouseEvent getCurrentMouseEvent();
-    bool isRecording();
-    bool isPlaying();
     
 private:
     ofxMouseTrapData mouseData;
-    int numPaths;
     long currentTime;
     bool bisPlaying;
     bool bisRecording;
     bool bisRecordingPath;
+    bool bisPaused;
     MouseEvent curPlayEvent;
-    int curPlayEventIndex;
-    int curPlayPathIndex;
+    int eventIndex;
+    int pathIndex;
 };
 
