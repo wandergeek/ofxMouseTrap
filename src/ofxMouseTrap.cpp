@@ -75,6 +75,16 @@ void ofxMouseTrap::drawDebug(){
     for(int i=0; i<lines.size(); i++) {
         lines[i].draw();
     }
+    
+    if(bisPlaying) {
+        const MouseEvent * mouseEventCurrent = getCurrentMouseEvent();
+        
+        if(mouseEventCurrent != NULL) {
+            ofFill();
+            ofSetColor(ofColor::fuchsia);
+            ofDrawCircle(mouseEventCurrent->x, mouseEventCurrent->y, 20);
+        }
+    }
 }
 
 //--------------------------------------------------------------
@@ -169,11 +179,15 @@ void ofxMouseTrap::addMouseEvent(int x, int y, int button) {
     uint64_t timeRecord = timeNow - timeRecordStart;
     
     MouseEvent e;
+    Path *curPath = &mouseData[mouseData.size()-1];
+    
     e.x = x;
     e.y = y;
     e.time = timeRecord;
+    e.pathIndex = mouseData.size()-1;
+    e.index = curPath->size();
+    e.button = button;
     
-    Path *curPath = &mouseData[mouseData.size()-1];
     curPath->push_back(e);
 }
 
