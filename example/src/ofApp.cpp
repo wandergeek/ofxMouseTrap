@@ -4,13 +4,15 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    trap = ofxMouseTrap();
-    trap.recordStart();
+
     ofSetCircleResolution(300);
+    ofSetLogLevel(ofLogLevel::OF_LOG_ERROR);
+    
+    trap.recordStart();
+    
     playIcon.load("play.png");
     pauseIcon.load("pause.png");
     iconPos = ofPoint(ofGetWidth()*0.05, ofGetHeight()*0.05);
-    ofSetLogLevel(ofLogLevel::OF_LOG_ERROR);
 }
 
 //--------------------------------------------------------------
@@ -27,10 +29,15 @@ void ofApp::draw(){
         ofDrawCircle(iconPos, 20);
         
     } else if(trap.isPlaying()) {
-        MouseEvent e = trap.getCurrentMouseEvent();
-        ofFill();
-        ofSetColor(ofColor::fuchsia);
-        ofDrawCircle(e.x, e.y, 20);
+
+        const MouseEvent * mouseEventCurrent = trap.getCurrentMouseEvent();
+        if(mouseEventCurrent != NULL) {
+
+            ofFill();
+            ofSetColor(ofColor::fuchsia);
+            ofDrawCircle(mouseEventCurrent->x, mouseEventCurrent->y, 20);
+        }
+        
         playIcon.draw(iconPos);
     }
     
@@ -46,13 +53,11 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    if(key == 's') {
+    if(key == 's' || key == 'S') {
         trap.save();
-        
-    } if(key == 'r') {
+    } else if(key == 'r' || key == 'R') {
         trap.recordStart();
-        
-    } else if(key == 'p') {
+    } else if(key == 'p' || key  == 'P') {
         trap.recordStop();
         trap.play();
     }
@@ -70,17 +75,17 @@ void ofApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
-    trap.recordMouseEvent(x,y,button);
+    trap.mouseDragged(x,y,button);
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-    trap.beginPath();
+    trap.mousePressed(x,y,button);
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
-    trap.endPath();
+    trap.mouseReleased(x,y,button);
     
 }
 
