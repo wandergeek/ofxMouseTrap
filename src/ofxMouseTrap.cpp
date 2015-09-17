@@ -2,12 +2,16 @@
 
 //--------------------------------------------------------------
 ofxMouseTrap::ofxMouseTrap() {
+    
     mouseEventCurrent = NULL;
-    bisPlaying = false;
-    bisRecording = false;
+    
     timeCurrent = 0;
     timeRecordStart = 0;
     timePlayStart = 0;
+
+    bPlaying = false;
+    bRecording = false;
+    bVerbose = true;
 }
 
 //--------------------------------------------------------------
@@ -16,11 +20,16 @@ ofxMouseTrap::~ofxMouseTrap() {
 }
 
 //--------------------------------------------------------------
+void ofxMouseTrap::setVerbose(bool value) {
+    bVerbose = value;
+}
+
+//--------------------------------------------------------------
 void ofxMouseTrap::update(){
     
     timeCurrent = ofGetElapsedTimeMillis();
     
-    if(bisPlaying == false) {
+    if(bPlaying == false) {
         return;
     }
     
@@ -76,7 +85,7 @@ void ofxMouseTrap::drawDebug(){
         lines[i].draw();
     }
     
-    if(bisPlaying) {
+    if(bPlaying == true) {
         const ofxMouseTrapEvent * mouseEventCurrent = getCurrentMouseEvent();
         
         if(mouseEventCurrent != NULL) {
@@ -89,23 +98,25 @@ void ofxMouseTrap::drawDebug(){
 
 //--------------------------------------------------------------
 void ofxMouseTrap::playStart(){
-    if(bisRecording == true) {
+    if(bRecording == true) {
         recordStop();
     }
     
     if(mouseData.size() == 0) {
-        ofLog(ofLogLevel::OF_LOG_ERROR, "You need to load an XML file before playing it");
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_ERROR, "You need to load an XML file before playing it");
+        }
         return;
     }
     
     playReset();
     
-    bisPlaying = true;
+    bPlaying = true;
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::playStop(){
-    bisPlaying = false;
+    bPlaying = false;
 }
 
 //--------------------------------------------------------------
@@ -115,34 +126,36 @@ void ofxMouseTrap::playReset() {
 
 //--------------------------------------------------------------
 bool ofxMouseTrap::isPlaying() {
-    return bisPlaying;
+    return bPlaying;
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::recordStart() {
-    bisRecording = true;
-    bisPlaying = false;
+    bRecording = true;
+    bPlaying = false;
     mouseData.clear();
     timeRecordStart = ofGetElapsedTimeMillis();
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::recordStop() {
-    bisRecording = false;
+    bRecording = false;
 }
 
 //--------------------------------------------------------------
 bool ofxMouseTrap::isRecording() {
-    return bisRecording;
+    return bRecording;
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::mousePressed(int x, int y, int button) {
-    if(bisRecording == false) {
+    if(bRecording == false) {
         return;
     }
     
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Starting path " + ofToString(mouseData.size()+1));
+    if(bVerbose == true) {
+        ofLog(ofLogLevel::OF_LOG_NOTICE, "Starting path " + ofToString(mouseData.size()+1));
+    }
     
     ofxMouseTrapPath newPath;
     mouseData.push_back(newPath);
@@ -158,22 +171,26 @@ void ofxMouseTrap::mouseDragged(int x, int y, int button) {
 
 //--------------------------------------------------------------
 void ofxMouseTrap::mouseReleased(int x, int y, int button) {
-    if(bisRecording == false) {
+    if(bRecording == false) {
         return;
     }
     
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Ending path " + ofToString(mouseData.size() ));
+    if(bVerbose == true) {
+        ofLog(ofLogLevel::OF_LOG_NOTICE, "Ending path " + ofToString(mouseData.size() ));
+    }
     
     addMouseEvent(x, y, button);
 }
 
 //--------------------------------------------------------------
 void ofxMouseTrap::addMouseEvent(int x, int y, int button) {
-    if(bisRecording == false) {
+    if(bRecording == false) {
         return;
     }
     
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Logging mouse: " + ofToString(x) + "," + ofToString(y));
+    if(bVerbose == true) {
+        ofLog(ofLogLevel::OF_LOG_NOTICE, "Logging mouse: " + ofToString(x) + "," + ofToString(y));
+    }
     
     uint64_t timeNow = ofGetElapsedTimeMillis();
     uint64_t timeRecord = timeNow - timeRecordStart;
@@ -199,7 +216,10 @@ void ofxMouseTrap::save() {
 
 //--------------------------------------------------------------
 void ofxMouseTrap::save(string filename) {
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Saving " + filename);
+    
+    if(bVerbose == true) {
+        ofLog(ofLogLevel::OF_LOG_NOTICE, "Saving " + filename);
+    }
     
     ofxXmlSettings xml;
     
@@ -225,14 +245,18 @@ bool ofxMouseTrap::load(string filename){
     //check if XML
     ofFile fileToRead(ofToDataPath(filename));
     if(!fileToRead.exists()) {
-        ofLog(ofLogLevel::OF_LOG_FATAL_ERROR, filename + " does not exist");
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_FATAL_ERROR, filename + " does not exist");
+        }
         return false;
     }
     
     ofxXmlSettings xml;
     xml.load(filename);
     int numPaths = xml.getNumTags("path");
-    ofLog(ofLogLevel::OF_LOG_NOTICE, "Got " + ofToString(numPaths) + " paths");
+    if(bVerbose == true) {
+        ofLog(ofLogLevel::OF_LOG_NOTICE, "Got " + ofToString(numPaths) + " paths");
+    }
     
     for(int i=0; i<numPaths; i++) {
         xml.pushTag("path", i);
@@ -259,8 +283,10 @@ const ofxMouseTrapData & ofxMouseTrap::getMouseData(){
 
 //--------------------------------------------------------------
 const ofxMouseTrapEvent * ofxMouseTrap::getCurrentMouseEvent() {
-    if(!bisPlaying) {
-        ofLog(ofLogLevel::OF_LOG_ERROR, "You've requested the current mouseevent, but the player is not currently running. Run play() first.");
+    if(bPlaying == false) {
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_ERROR, "You've requested the current mouseevent, but the player is not currently running. Run play() first.");
+        }
     }
     
     return mouseEventCurrent;
