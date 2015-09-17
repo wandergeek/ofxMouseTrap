@@ -34,6 +34,8 @@ public:
     ofxMouseTrap();
     ~ofxMouseTrap();
 
+    void setVerbose(bool value);
+    
     void update();
     void drawDebug();
     
@@ -66,7 +68,9 @@ private:
     uint64_t timeCurrent;
     uint64_t timeRecordStart;
     uint64_t timePlayStart;
-    bool bisPlaying;
-    bool bisRecording;
+
+    bool bPlaying;
+    bool bRecording;
+    bool bVerbose;
 };
 
