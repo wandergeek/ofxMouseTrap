@@ -4,6 +4,15 @@
 #include "ofMain.h"
 #include "ofxXmlSettings.h"
 
+//--------------------------------------------------------------
+enum ofxMouseTrapEventType {
+    ofxMouseTrapEventTypeUndefined = 0,
+    ofxMouseTrapEventTypeMoved,
+    ofxMouseTrapEventTypePressed,
+    ofxMouseTrapEventTypeDragged,
+    ofxMouseTrapEventTypeReleased
+};
+
 class ofxMouseTrapEvent {
  
 public:
@@ -12,65 +21,79 @@ public:
         x = 0;
         y = 0;
         button = 0;
+        type = ofxMouseTrapEventTypeUndefined;
+
         pathIndex = 0;
+        index = 0;
         time = 0;
     }
     
     int x;
     int y;
     int button;
-    int index;
+    ofxMouseTrapEventType type;
+
     int pathIndex;
+    int index;
     uint64_t time;
-    
 };
 
 typedef vector<ofxMouseTrapEvent> ofxMouseTrapPath;
 typedef vector<ofxMouseTrapPath> ofxMouseTrapData;
 
+//--------------------------------------------------------------
 class ofxMouseTrap {
     
 public:
+    
     ofxMouseTrap();
     ~ofxMouseTrap();
 
     void setVerbose(bool value);
+    void setLoop(bool value);
     
-    void update();
+    void recordStart();
+    void recordStop();
+    bool isRecording();
+    
+    void update(float dt=0);
     void drawDebug();
     
     void playStart();
     void playStop();
     void playReset();
     bool isPlaying();
-    
-    void recordStart();
-    void recordStop();
-    bool isRecording();
-    
-    void mousePressed(int x, int y, int button);
-    void mouseDragged(int x, int y, int button);
-    void mouseReleased(int x, int y, int button);
-    void addMouseEvent(int x, int y, int button);
+    bool isPlayFinished();
+    bool isPlayJustFinished();
     
     void save();
     void save(string filename);
     bool load(string filename);
+    
+    void mousePressed(int x, int y, int button);
+    void mouseDragged(int x, int y, int button);
+    void mouseReleased(int x, int y, int button);
+    void addMouseEvent(int x, int y, int button, ofxMouseTrapEventType type);
 
     const ofxMouseTrapData & getMouseData();
-    const ofxMouseTrapEvent * getCurrentMouseEvent();
+    const vector<ofxMouseTrapEvent *> getMouseEventsForCurrentFrame();
     vector<ofPolyline> getPathPolylines();
     
 private:
+
     ofxMouseTrapData mouseData;
-    ofxMouseTrapEvent * mouseEventCurrent;
+    vector<ofxMouseTrapEvent *> mouseEventsForCurrentFrame;
     
-    uint64_t timeCurrent;
-    uint64_t timeRecordStart;
-    uint64_t timePlayStart;
+    uint64_t timeRecord;
+    uint64_t timePlay;
+    uint64_t timePrevFrame;
 
     bool bPlaying;
-    bool bRecording;
+    bool bPlayJustFinished;
+    bool bPlayFinished;
+    bool bLoop;
+    
+    bool bRecord;
     bool bVerbose;
 };
 
