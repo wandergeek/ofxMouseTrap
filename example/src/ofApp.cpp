@@ -11,12 +11,12 @@ void ofApp::setup(){
     trap.recordStart();
     
     playIcon.load("play.png");
-    pauseIcon.load("pause.png");
     iconPos = ofPoint(ofGetWidth()*0.05, ofGetHeight()*0.05);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
+    
     trap.update();
 }
 
@@ -43,13 +43,18 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    if(key == 's' || key == 'S') {
-        trap.save();
-    } else if(key == 'r' || key == 'R') {
-        trap.recordStart();
+
+    if(key == 'r' || key == 'R') {
+        
+        trap.recordToggle();
+        
     } else if(key == 'p' || key  == 'P') {
-        trap.recordStop();
+        
         trap.playStart();
+        
+    } else if(key == 's' || key == 'S') {
+        
+        trap.save();
     }
 }
 

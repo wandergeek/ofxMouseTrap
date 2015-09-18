@@ -54,6 +54,7 @@ public:
     
     void recordStart();
     void recordStop();
+    void recordToggle();
     bool isRecording();
     
     void update(float dt=0);

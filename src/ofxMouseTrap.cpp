@@ -49,6 +49,14 @@ void ofxMouseTrap::recordStop() {
     bRecord = false;
 }
 
+void ofxMouseTrap::recordToggle() {
+    if(bRecord == true) {
+        recordStop();
+    } else {
+        recordStart();
+    }
+}
+
 bool ofxMouseTrap::isRecording() {
     return bRecord;
 }
