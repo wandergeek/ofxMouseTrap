@@ -89,8 +89,8 @@
 		01D925C71B9D3FE800B5CF46 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				01D925C81B9D3FE800B5CF46 /* ofxMouseTrap.cpp */,
 				01D925C91B9D3FE800B5CF46 /* ofxMouseTrap.h */,
+				01D925C81B9D3FE800B5CF46 /* ofxMouseTrap.cpp */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -166,8 +166,8 @@
 			isa = PBXGroup;
 			children = (
 				E4B69E1D0A3A1BDC003C02F2 /* main.cpp */,
-				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
 				E4B69E1F0A3A1BDC003C02F2 /* ofApp.h */,
+				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
 			);
 			path = src;
 			sourceTree = SOURCE_ROOT;

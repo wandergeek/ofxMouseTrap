@@ -5,12 +5,16 @@ ofxMouseTrap::ofxMouseTrap() {
     
     mouseEventCurrent = NULL;
     
-    timeCurrent = 0;
-    timeRecordStart = 0;
-    timePlayStart = 0;
+    timeRecord = 0;
+    timePlay = 0;
+    timePrevFrame = 0;
 
     bPlaying = false;
-    bRecording = false;
+    bPlayJustFinished = false;
+    bPlayFinished = false;
+    bLoop = false;
+    
+    bRecord = false;
     bVerbose = true;
 }
 
@@ -24,33 +28,155 @@ void ofxMouseTrap::setVerbose(bool value) {
     bVerbose = value;
 }
 
+void ofxMouseTrap::setLoop(bool value) {
+    bLoop = value;
+}
+
 //--------------------------------------------------------------
-void ofxMouseTrap::update(){
+const ofxMouseTrapData & ofxMouseTrap::getMouseData() const {
+    return mouseData;
+}
+
+const vector<ofxMouseTrapEvent *> ofxMouseTrap::getMouseEventsForCurrentFrame() const {
+    return mouseEventsForCurrentFrame;
+}
+
+const ofxMouseTrapEvent * ofxMouseTrap::getMouseEventCurrent() const {
+    return mouseEventCurrent;
+}
+
+const ofxMouseTrapPath * ofxMouseTrap::getMousePathCurrent() const {
+    return mousePathCurrent;
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::recordStart() {
+    if(bRecord == true) {
+        return;
+    }
+    bRecord = true;
+    timeRecord = 0;
     
-    timeCurrent = ofGetElapsedTimeMillis();
+    bPlaying = false;
+    mouseData.clear();
+}
+
+void ofxMouseTrap::recordStop() {
+    if(bRecord == false) {
+        return;
+    }
+    bRecord = false;
+}
+
+void ofxMouseTrap::recordToggle() {
+    if(bRecord == true) {
+        recordStop();
+    } else {
+        recordStart();
+    }
+}
+
+bool ofxMouseTrap::isRecording() const {
+    return bRecord;
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::playStart(){
+    recordStop();
+    
+    if(mouseData.size() == 0) {
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_ERROR, "You need to load an XML file before playing it");
+        }
+        return;
+    }
+    
+    playReset();
+    
+    bPlaying = true;
+    bPlayFinished = false;
+    bPlayJustFinished = false;
+}
+
+void ofxMouseTrap::playStop(){
+    bPlaying = false;
+    bPlayFinished = false;
+    bPlayJustFinished = false;
+}
+
+void ofxMouseTrap::playReset() {
+    timePlay = 0;
+    timePrevFrame = 0;
+}
+
+bool ofxMouseTrap::isPlaying() const {
+    return bPlaying;
+}
+
+bool ofxMouseTrap::isPlayFinished() const {
+    return bPlayFinished;
+}
+
+bool ofxMouseTrap::isPlayJustFinished() const {
+    return bPlayJustFinished;
+}
+
+//--------------------------------------------------------------
+void ofxMouseTrap::update(float dt) {
+    
+    double nanoToSeconds = 0.000000001;
+    uint64_t timeOfLastFrame = dt / nanoToSeconds;
+    if(timeOfLastFrame == 0) {
+        timeOfLastFrame = ofGetLastFrameTime() / nanoToSeconds;
+    }
+    
+    if(bRecord == true) {
+        timeRecord += timeOfLastFrame;
+        return;
+    }
     
     if(bPlaying == false) {
         return;
     }
     
-    if(mouseData.size() == 0) {
+    bool bValid = true;
+    bValid = bValid && (mouseData.size() > 0);
+    if(bValid == false) {
         return;
     }
     
-    uint64_t timePlay = timeCurrent - timePlayStart;
+    timePrevFrame = timePlay;
+    timePlay += timeOfLastFrame;
     
+    mouseEventsForCurrentFrame.clear();
     mouseEventCurrent = NULL;
+    mousePathCurrent = NULL;
 
     for(int i=0; i<mouseData.size(); i++) {
-        vector<ofxMouseTrapEvent> & path = mouseData[i];
+        ofxMouseTrapPath & mousePath = mouseData[i];
+        vector<ofxMouseTrapEvent> & mouseEvents = mousePath.mouseEvents;
         
-        if(path.size() < 2) {
+        for(int j=0; j<mouseEvents.size(); j++) {
+            ofxMouseTrapEvent & mouseEvent= mouseEvents[j];
+            
+            bool bInTimeRange = true;
+            bInTimeRange = bInTimeRange && (mouseEvent.time >= timePrevFrame);
+            bInTimeRange = bInTimeRange && (mouseEvent.time < timePlay);
+            
+            if(bInTimeRange == false) {
+                continue;
+            }
+            
+            mouseEventsForCurrentFrame.push_back(&mouseEvent);
+        }
+        
+        if(mouseEvents.size() < 2) {
             continue;
         }
         
-        for(int j=0; j<path.size()-1; j++) {
-            ofxMouseTrapEvent & event0 = path[j+0];
-            ofxMouseTrapEvent & event1 = path[j+1];
+        for(int j=0; j<mouseEvents.size()-1; j++) {
+            ofxMouseTrapEvent & event0 = mouseEvents[j+0];
+            ofxMouseTrapEvent & event1 = mouseEvents[j+1];
             
             bool bInTimeRange = true;
             bInTimeRange = bInTimeRange && (timePlay >= event0.time);
@@ -67,145 +193,59 @@ void ofxMouseTrap::update(){
             if(time1 < time0) {
                 mouseEventCurrent = &event1;
             }
+            
+            mousePathCurrent = &mousePath;
+            
+            break;
         }
     }
     
-    const ofxMouseTrapPath& pathLast = mouseData[mouseData.size()-1];
-    const ofxMouseTrapEvent & mouseEventLast = pathLast[pathLast.size() - 1];
-    if(timePlay > mouseEventLast.time) {
-        playReset();
+    const ofxMouseTrapPath & pathLast = mouseData[mouseData.size()-1];
+    const ofxMouseTrapEvent & mouseEventLast = pathLast.mouseEvents[pathLast.mouseEvents.size()-1];
+    
+    bool bPlayFinishedNew = (timePlay >= mouseEventLast.time);
+    bool bPlayFinishedChanged = (bPlayFinished != bPlayFinishedNew);
+    bPlayJustFinished = (bPlayFinished == false) && (bPlayFinishedChanged == true);
+    bPlayFinished = bPlayFinishedNew;
+    
+    if(bPlayJustFinished == true) {
+
+        if(bLoop == true) {
+         
+            playStart();
+            
+        } else {
+            
+            bPlaying = false;
+        }
     }
 }
 
 //--------------------------------------------------------------
-void ofxMouseTrap::drawDebug(){
-    vector<ofPolyline> lines = getPathPolylines();
+void ofxMouseTrap::draw() const {
+    
     ofSetColor(ofColor::black);
-    for(int i=0; i<lines.size(); i++) {
-        lines[i].draw();
-    }
+    drawMousePaths();
     
-    if(bPlaying == true) {
-        const ofxMouseTrapEvent * mouseEventCurrent = getCurrentMouseEvent();
-        
-        if(mouseEventCurrent != NULL) {
-            ofFill();
-            ofSetColor(ofColor::fuchsia);
-            ofDrawCircle(mouseEventCurrent->x, mouseEventCurrent->y, 20);
-        }
+    ofSetColor(ofColor::fuchsia);
+    drawMousePoint();
+    
+    ofSetColor(ofColor::white);
+}
+
+void ofxMouseTrap::drawMousePaths() const {
+    for(int i=0; i<mouseData.size(); i++) {
+        const ofxMouseTrapPath & mousePath = mouseData[i];
+        mousePath.poly.draw();
     }
 }
 
-//--------------------------------------------------------------
-void ofxMouseTrap::playStart(){
-    if(bRecording == true) {
-        recordStop();
-    }
-    
-    if(mouseData.size() == 0) {
-        if(bVerbose == true) {
-            ofLog(ofLogLevel::OF_LOG_ERROR, "You need to load an XML file before playing it");
-        }
+void ofxMouseTrap::drawMousePoint(float size) const {
+    if(mouseEventCurrent == NULL) {
         return;
     }
     
-    playReset();
-    
-    bPlaying = true;
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::playStop(){
-    bPlaying = false;
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::playReset() {
-    timePlayStart = ofGetElapsedTimeMillis();
-}
-
-//--------------------------------------------------------------
-bool ofxMouseTrap::isPlaying() {
-    return bPlaying;
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::recordStart() {
-    bRecording = true;
-    bPlaying = false;
-    mouseData.clear();
-    timeRecordStart = ofGetElapsedTimeMillis();
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::recordStop() {
-    bRecording = false;
-}
-
-//--------------------------------------------------------------
-bool ofxMouseTrap::isRecording() {
-    return bRecording;
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::mousePressed(int x, int y, int button) {
-    if(bRecording == false) {
-        return;
-    }
-    
-    if(bVerbose == true) {
-        ofLog(ofLogLevel::OF_LOG_NOTICE, "Starting path " + ofToString(mouseData.size()+1));
-    }
-    
-    ofxMouseTrapPath newPath;
-    mouseData.push_back(newPath);
-    
-    addMouseEvent(x, y, button);
-}
-
-//--------------------------------------------------------------
-
-void ofxMouseTrap::mouseDragged(int x, int y, int button) {
-    addMouseEvent(x, y, button);
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::mouseReleased(int x, int y, int button) {
-    if(bRecording == false) {
-        return;
-    }
-    
-    if(bVerbose == true) {
-        ofLog(ofLogLevel::OF_LOG_NOTICE, "Ending path " + ofToString(mouseData.size() ));
-    }
-    
-    addMouseEvent(x, y, button);
-}
-
-//--------------------------------------------------------------
-void ofxMouseTrap::addMouseEvent(int x, int y, int button) {
-    if(bRecording == false) {
-        return;
-    }
-    
-    if(bVerbose == true) {
-        ofLog(ofLogLevel::OF_LOG_NOTICE, "Logging mouse: " + ofToString(x) + "," + ofToString(y));
-    }
-    
-    uint64_t timeNow = ofGetElapsedTimeMillis();
-    uint64_t timeRecord = timeNow - timeRecordStart;
-    
-    ofxMouseTrapEvent e;
-    ofxMouseTrapPath *curPath = &mouseData[mouseData.size()-1];
-    
-    e.x = x;
-    e.y = y;
-    e.time = timeRecord;
-    e.pathIndex = mouseData.size()-1;
-    e.index = curPath->size();
-    e.button = button;
-    
-    curPath->push_back(e);
+    ofDrawCircle(mouseEventCurrent->x, mouseEventCurrent->y, size);
 }
 
 //--------------------------------------------------------------
@@ -214,7 +254,6 @@ void ofxMouseTrap::save() {
     save(filename);
 }
 
-//--------------------------------------------------------------
 void ofxMouseTrap::save(string filename) {
     
     if(bVerbose == true) {
@@ -223,87 +262,146 @@ void ofxMouseTrap::save(string filename) {
     
     ofxXmlSettings xml;
     
-    for(int i=0; i<mouseData.size(); i++) { //for each path
+    for(int i=0; i<mouseData.size(); i++) {
+        const ofxMouseTrapPath & mousePath = mouseData[i];
+        const vector<ofxMouseTrapEvent> & mouseEvents = mousePath.mouseEvents;
+        
         xml.addTag("path");
         xml.pushTag("path", i);
-        for(int j=0; j<mouseData[i].size(); j++) { //for each mouseevent in path
-            ofxMouseTrapEvent e = mouseData[i][j];
+        
+        for(int j=0; j<mouseEvents.size(); j++) {
+            const ofxMouseTrapEvent & mouseEvent = mouseEvents[j];
+            
             xml.addTag("item");
-            xml.addAttribute("item", "x", e.x, j);
-            xml.addAttribute("item", "y", e.y, j);
-            xml.addAttribute("item", "timeMS" ,int(e.time), j);
+            xml.addAttribute("item", "x", mouseEvent.x, j);
+            xml.addAttribute("item", "y", mouseEvent.y, j);
+            xml.addAttribute("item", "button", mouseEvent.button, j);
+            xml.addAttribute("item", "type", mouseEvent.type, j);
+            
+            string timeAsStr = ofToString(mouseEvent.time);
+            xml.addAttribute("item", "timeMS", timeAsStr, j);
         }
+        
         xml.popTag();
     }
     
     xml.save(filename);
-    mouseData.clear();
 }
 
-//--------------------------------------------------------------
-bool ofxMouseTrap::load(string filename){
-    //check if XML
-    ofFile fileToRead(ofToDataPath(filename));
-    if(!fileToRead.exists()) {
+bool ofxMouseTrap::load(string filename) {
+    
+    ofxXmlSettings xml;
+    bool bLoaded = xml.load(filename);
+    
+    if(bLoaded == false) {
         if(bVerbose == true) {
             ofLog(ofLogLevel::OF_LOG_FATAL_ERROR, filename + " does not exist");
         }
         return false;
     }
     
-    ofxXmlSettings xml;
-    xml.load(filename);
     int numPaths = xml.getNumTags("path");
-    if(bVerbose == true) {
-        ofLog(ofLogLevel::OF_LOG_NOTICE, "Got " + ofToString(numPaths) + " paths");
+    if(numPaths == 0) {
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_FATAL_ERROR, "ofxMouseTrap::load - no mouse paths found in xml.");
+        }
+        return false;
     }
+    
+    if(bVerbose == true) {
+        ofLog(ofLogLevel::OF_LOG_NOTICE, "ofxMouseTrap::load - found " + ofToString(numPaths) + "mouse paths");
+    }
+    
+    mouseData.clear();
     
     for(int i=0; i<numPaths; i++) {
         xml.pushTag("path", i);
         int numItems = xml.getNumTags("item");
-        vector <ofxMouseTrapEvent> mv;
+        
+        mouseData.push_back(ofxMouseTrapPath());
+        ofxMouseTrapPath & mousePath = mouseData.back();
+        vector<ofxMouseTrapEvent> & mouseEvents = mousePath.mouseEvents;
+
         for(int j=0; j<numItems; j++) {
-            ofxMouseTrapEvent m;
-            m.x = xml.getAttribute("item", "x", -1, j);
-            m.y = xml.getAttribute("item", "y", -1, j);
-            m.time = xml.getAttribute("item", "timeMS", -1, j);
-            mv.push_back(m);
+            
+            mouseEvents.push_back(ofxMouseTrapEvent());
+            ofxMouseTrapEvent & mouseEvent = mouseEvents.back();
+            
+            mouseEvent.x = xml.getAttribute("item", "x", -1, j);
+            mouseEvent.y = xml.getAttribute("item", "y", -1, j);
+            mouseEvent.button = xml.getAttribute("item", "button", -1, j);
+            mouseEvent.type = (ofxMouseTrapEventType)xml.getAttribute("item", "type", -1, j);
+            
+            string timeAsStr = xml.getAttribute("item", "timeMS", "", j);
+            mouseEvent.time = ofToInt64(timeAsStr);
+            
+            mouseEvent.mousePathIndex = i;
+            mouseEvent.mouseEventIndex = j;
+            
+            mousePath.poly.addVertex(mouseEvent.x, mouseEvent.y);
         }
+
         xml.popTag();
-        mouseData.push_back(mv);
     }
     
     return true;
 }
 
 //--------------------------------------------------------------
-const ofxMouseTrapData & ofxMouseTrap::getMouseData(){
-    return mouseData;
+void ofxMouseTrap::mousePressed(int x, int y, int button) {
+    addMouseEvent(x, y, button, ofxMouseTrapEventTypePressed);
 }
 
-//--------------------------------------------------------------
-const ofxMouseTrapEvent * ofxMouseTrap::getCurrentMouseEvent() {
-    if(bPlaying == false) {
+void ofxMouseTrap::mouseDragged(int x, int y, int button) {
+    addMouseEvent(x, y, button, ofxMouseTrapEventTypeDragged);
+}
+
+void ofxMouseTrap::mouseReleased(int x, int y, int button) {
+    addMouseEvent(x, y, button, ofxMouseTrapEventTypeReleased);
+}
+
+void ofxMouseTrap::addMouseEvent(int x, int y, int button, ofxMouseTrapEventType type) {
+    if(bRecord == false) {
+        return;
+    }
+    
+    if(type == ofxMouseTrapEventTypePressed) {
+        
         if(bVerbose == true) {
-            ofLog(ofLogLevel::OF_LOG_ERROR, "You've requested the current mouseevent, but the player is not currently running. Run play() first.");
+            ofLog(ofLogLevel::OF_LOG_NOTICE, "Starting path " + ofToString(mouseData.size()+1));
+        }
+        
+        ofxMouseTrapPath newPath;
+        mouseData.push_back(newPath);
+    }
+    
+    if(type == ofxMouseTrapEventTypeDragged) {
+
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_NOTICE, "Logging mouse: " + ofToString(x) + "," + ofToString(y));
         }
     }
     
-    return mouseEventCurrent;
-}
-
-//--------------------------------------------------------------
-vector<ofPolyline> ofxMouseTrap::getPathPolylines() {
-    vector<ofPolyline> lines;
-        int numPaths = mouseData.size();
-        for(int i=0; i<numPaths; i++) {
-            ofPolyline line;
-            vector<ofxMouseTrapEvent> curPath = mouseData[i];
-            for(int i=0; i<curPath.size(); i++) {
-                line.addVertex(curPath[i].x, curPath[i].y);
-            }
-            lines.push_back(line);
-            line.clear();
+    if(type == ofxMouseTrapEventTypeReleased) {
+        
+        if(bVerbose == true) {
+            ofLog(ofLogLevel::OF_LOG_NOTICE, "Ending path " + ofToString(mouseData.size() ));
         }
-    return lines;
+    }
+    
+    ofxMouseTrapPath & mousePath = mouseData[mouseData.size()-1];
+    vector<ofxMouseTrapEvent> & mouseEvents = mousePath.mouseEvents;
+    mouseEvents.push_back(ofxMouseTrapEvent());
+    ofxMouseTrapEvent & mouseEvent = mouseEvents.back();
+    
+    mouseEvent.x = x;
+    mouseEvent.y = y;
+    mouseEvent.button = button;
+    mouseEvent.type = type;
+    mouseEvent.time = timeRecord;
+
+    mouseEvent.mousePathIndex = mouseData.size()-1;
+    mouseEvent.mouseEventIndex = mouseEvents.size()-1;
+    
+    mousePath.poly.addVertex(x, y);
 }
