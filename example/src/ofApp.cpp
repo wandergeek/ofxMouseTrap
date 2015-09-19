@@ -8,6 +8,7 @@ void ofApp::setup(){
     ofSetCircleResolution(300);
     ofSetLogLevel(ofLogLevel::OF_LOG_ERROR);
     
+    trap.setLoop(true);
     trap.recordStart();
     
     playIcon.load("play.png");
@@ -24,21 +25,25 @@ void ofApp::update(){
 void ofApp::draw(){
 
     if(trap.isRecording()) {
-        ofFill();
+
         ofSetColor(ofColor::red);
         ofDrawCircle(iconPos, 20);
+        ofSetColor(ofColor::white);
         
     } else if(trap.isPlaying()) {
+        
         playIcon.draw(iconPos);
     }
     
-    trap.drawDebug();
+    trap.draw();
     
-    int x = ofGetWidth()*0.05;
-    int y = ofGetHeight()*0.95;
+    int x = ofGetWidth() * 0.05;
+    int y = ofGetHeight() * 0.95;
+
     ofSetColor(ofColor::black);
     ofDrawBitmapString("Click and drag mouse to record path.", x, y);
     ofDrawBitmapString("Press R to re/record, S to Save, and P to re/play recording", x, y+20);
+    ofSetColor(ofColor::white);
 }
 
 //--------------------------------------------------------------
@@ -54,7 +59,12 @@ void ofApp::keyPressed(int key){
         
     } else if(key == 's' || key == 'S') {
         
-        trap.save();
+        trap.save("mousetrap.xml");
+
+    } else if(key == 'l' || key == 'L') {
+        
+        trap.load("mousetrap.xml");
+        trap.playStart();
     }
 }
 

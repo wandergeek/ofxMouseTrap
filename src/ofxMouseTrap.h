@@ -13,6 +13,7 @@ enum ofxMouseTrapEventType {
     ofxMouseTrapEventTypeReleased
 };
 
+//--------------------------------------------------------------
 class ofxMouseTrapEvent {
  
 public:
@@ -22,23 +23,36 @@ public:
         y = 0;
         button = 0;
         type = ofxMouseTrapEventTypeUndefined;
-
-        pathIndex = 0;
-        index = 0;
         time = 0;
+
+        mousePathIndex = 0;
+        mouseEventIndex = 0;
     }
     
     int x;
     int y;
     int button;
     ofxMouseTrapEventType type;
-
-    int pathIndex;
-    int index;
     uint64_t time;
+
+    int mousePathIndex;
+    int mouseEventIndex;
 };
 
-typedef vector<ofxMouseTrapEvent> ofxMouseTrapPath;
+//--------------------------------------------------------------
+class ofxMouseTrapPath {
+
+public:
+    
+    ofxMouseTrapPath() {
+        //
+    }
+    
+    vector<ofxMouseTrapEvent> mouseEvents;
+    ofPolyline poly;
+};
+
+//--------------------------------------------------------------
 typedef vector<ofxMouseTrapPath> ofxMouseTrapData;
 
 //--------------------------------------------------------------
@@ -52,20 +66,28 @@ public:
     void setVerbose(bool value);
     void setLoop(bool value);
     
+    const ofxMouseTrapData & getMouseData() const;
+    const vector<ofxMouseTrapEvent *> getMouseEventsForCurrentFrame() const;
+    const ofxMouseTrapEvent * getMouseEventCurrent() const;
+    const ofxMouseTrapPath * getMousePathCurrent() const;
+    
     void recordStart();
     void recordStop();
     void recordToggle();
-    bool isRecording();
-    
-    void update(float dt=0);
-    void drawDebug();
+    bool isRecording() const;
     
     void playStart();
     void playStop();
     void playReset();
-    bool isPlaying();
-    bool isPlayFinished();
-    bool isPlayJustFinished();
+    bool isPlaying() const;
+    bool isPlayFinished() const;
+    bool isPlayJustFinished() const;
+    
+    void update(float dt=0);
+
+    void draw() const;
+    void drawMousePaths() const;
+    void drawMousePoint(float size=10) const;
     
     void save();
     void save(string filename);
@@ -75,15 +97,13 @@ public:
     void mouseDragged(int x, int y, int button);
     void mouseReleased(int x, int y, int button);
     void addMouseEvent(int x, int y, int button, ofxMouseTrapEventType type);
-
-    const ofxMouseTrapData & getMouseData();
-    const vector<ofxMouseTrapEvent *> getMouseEventsForCurrentFrame();
-    vector<ofPolyline> getPathPolylines();
     
 private:
 
     ofxMouseTrapData mouseData;
     vector<ofxMouseTrapEvent *> mouseEventsForCurrentFrame;
+    ofxMouseTrapEvent * mouseEventCurrent;
+    ofxMouseTrapPath * mousePathCurrent;
     
     uint64_t timeRecord;
     uint64_t timePlay;
